@@ -1,18 +1,7 @@
 defmodule LogAnalyzer do
-  @moduledoc """
-  Documentation for LogAnalyzer.
-  """
+  use Application
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> LogAnalyzer.hello
-      :world
-
-  """
-  def hello do
-    :world
+  def start(_type, _args) do
+    LogAnalyzer.Supervisor.start_link()
   end
 end

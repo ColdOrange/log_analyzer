@@ -13,11 +13,15 @@ defmodule LogAnalyzer.MixProject do
 
   def application do
     [
+      mod: {LogAnalyzer, []},
       extra_applications: [:logger]
     ]
   end
 
   defp deps do
-    []
+    [
+      {:poison, "~> 3.1"},
+      {:timex, "~> 3.1"}
+    ]
   end
 end

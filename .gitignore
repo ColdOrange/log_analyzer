@@ -32,3 +32,6 @@ assets/node_modules/
 assets/static/css/**
 assets/static/js/**
 assets/yarn-error.log
+
+# log config
+priv/config/
