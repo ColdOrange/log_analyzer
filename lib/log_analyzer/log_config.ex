@@ -20,6 +20,7 @@ defmodule LogAnalyzer.LogConfig do
   end
 
   def set(config) do
+    # TODO: validate time_format
     Agent.update(__MODULE__, fn _config -> config end)
   end
 

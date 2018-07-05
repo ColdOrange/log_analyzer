@@ -21,7 +21,9 @@ defmodule LogAnalyzer.MixProject do
   defp deps do
     [
       {:poison, "~> 3.1"},
-      {:timex, "~> 3.1"}
+      {:timex, "~> 3.1"},
+      {:postgrex, "~> 0.13"},
+      {:ecto, "~> 2.1"}
     ]
   end
 end
