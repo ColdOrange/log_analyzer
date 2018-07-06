@@ -14,7 +14,12 @@ defmodule LogAnalyzer.MixProject do
   def application do
     [
       mod: {LogAnalyzer, []},
-      extra_applications: [:logger]
+      extra_applications: [
+        :logger,
+        :cowboy,
+        :plug,
+        :ua_inspector
+      ]
     ]
   end
 
@@ -23,7 +28,10 @@ defmodule LogAnalyzer.MixProject do
       {:poison, "~> 3.1"},
       {:timex, "~> 3.1"},
       {:postgrex, "~> 0.13"},
-      {:ecto, "~> 2.1"}
+      {:ecto, "~> 2.1"},
+      {:cowboy, "~> 2.0"},
+      {:plug, "~> 1.6"},
+      {:ua_inspector, "~> 0.17"}
     ]
   end
 end

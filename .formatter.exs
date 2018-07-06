@@ -1,4 +1,11 @@
-# Used by "mix format"
 [
-  inputs: ["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]
+  inputs: [
+    "mix.exs",
+    ".formatter.exs",
+    "{config,lib,test}/**/*.{ex,exs}"
+  ],
+  import: [
+    :plug,
+    :ecto
+  ]
 ]

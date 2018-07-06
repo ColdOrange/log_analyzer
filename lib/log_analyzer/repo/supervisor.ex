@@ -1,4 +1,4 @@
-defmodule LogAnalyzer.RepoSupervisor do
+defmodule LogAnalyzer.Repo.Supervisor do
   require Logger
   use DynamicSupervisor
 
@@ -89,7 +89,7 @@ defmodule LogAnalyzer.RepoSupervisor do
     end
   end
 
-  defp repo_opts(%LogAnalyzer.DBConfig{driver: "postgresql"} = config) do
+  defp repo_opts(%LogAnalyzer.DBConfig{driver: "postgres"} = config) do
     {:ok,
      [
        adapter: Ecto.Adapters.Postgres,

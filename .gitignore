@@ -35,3 +35,6 @@ assets/yarn-error.log
 
 # log config
 priv/config/
+
+# ua_inspector database
+priv/ua_db

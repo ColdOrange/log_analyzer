@@ -6,7 +6,7 @@ defmodule LogAnalyzer.Repo do
 
   def config() do
     dynamic_config =
-      case :ets.lookup(LogAnalyzer.RepoSupervisor, :config) do
+      case :ets.lookup(LogAnalyzer.Repo.Supervisor, :config) do
         [{_, config}] -> config
         [] -> []
       end

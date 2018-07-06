@@ -51,10 +51,10 @@ defmodule LogAnalyzer.LogConfig do
     %__MODULE__{
       initialized: true,
       log_file: Path.join(~w(#{@project_path} priv sample sample.log)),
-      log_pattern: ~r/(.*) - - \[(.*)\] "(.*) (.*) (.*)" (.*) (.*) "(.*)" "(.*)" (.*)/,
+      log_pattern: ~s/(.*) - - \\[(.*)\\] "(.*) (.*) (.*)" (.*) (.*) "(.*)" "(.*)" (.*)/,
       log_format:
         ~w(IP Time RequestMethod RequestURL HTTPVersion ResponseCode ContentSize Referrer UserAgent ResponseTime),
-      time_format: "{0D}/{MShort}/{YYYY}:{h24}:{m}:{s} {Z}"
+      time_format: "{0D}/{Mshort}/{YYYY}:{h24}:{m}:{s} {Z}"
     }
   end
 end

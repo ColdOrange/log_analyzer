@@ -9,7 +9,7 @@ defmodule LogAnalyzer.Supervisor do
     children = [
       {LogAnalyzer.DBConfig, []},
       {LogAnalyzer.LogConfig, []},
-      {LogAnalyzer.RepoSupervisor, []}
+      {LogAnalyzer.Repo.Supervisor, []}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
