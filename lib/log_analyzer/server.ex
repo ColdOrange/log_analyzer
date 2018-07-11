@@ -1,5 +1,5 @@
 defmodule LogAnalyzer.Server do
-  alias LogAnalyzer.{DBConfig, Parser}
+  alias LogAnalyzer.{DBConfig, LogConfig, Parser}
   alias LogAnalyzer.Repo.Supervisor, as: RepoSupervisor
 
   def run() do
@@ -13,6 +13,6 @@ defmodule LogAnalyzer.Server do
       false
     )
 
-    Parser.parse(1)
+    Parser.parse(LogConfig.get())
   end
 end

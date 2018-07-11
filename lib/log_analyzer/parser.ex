@@ -1,52 +1,97 @@
 defmodule LogAnalyzer.Parser do
   require Logger
-  import Ecto.Query
   alias LogAnalyzer.{LogConfig, Repo}
-  alias LogAnalyzer.Repo.Migrator
+  alias LogAnalyzer.Repo.{Migrator, Report}
 
-  def parse(id) do
-    log_config = LogConfig.get()
-    Logger.info("Starting parsing log file <#{log_config.log_file}>")
-    zero = System.monotonic_time()
+  def parse(%LogConfig{
+        log_file: log_file,
+        log_pattern: log_pattern,
+        log_format: log_format,
+        time_format: time_format
+      }) do
+    with {:ok, pattern} <- compile_log_pattern(log_pattern),
+         :ok <- validate_log_file(log_file),
+         {:ok, id} <- insert_report_table(log_file),
+         :ok <- create_log_table(id) do
+      parse_file(id, log_file, pattern, log_format, time_format)
+    end
+  end
 
-    case Regex.compile(log_config.log_pattern) do
-      {:ok, pattern} ->
-        # case Migrator.create_report_table() do
-        #   {:ok, _result} ->
-        #     File.stream!(log_config.log_file)
-        #     |> Stream.map(&String.trim_trailing/1)
-        #     |> Stream.with_index()
-        #     |> Stream.map(fn {line, index} -> IO.puts("#{index + 1} #{line}") end)
-        #     |> Stream.run()
-
-        #   {:error, exception} ->
-        #     error_message = "Create report table error: #{exception.message}"
-        #     Logger.error(error_message)
-        #     {:error, error_message}
-        # end
-        Migrator.create_report_table()
-
-        File.stream!(log_config.log_file)
-        |> Stream.map(&String.trim_trailing/1)
-        |> Stream.with_index()
-        |> Stream.map(fn {line, index} ->
-          case parse_line(line, index + 1, pattern, log_config.log_format, log_config.time_format) do
-            {:ok, values} ->
-              Repo.insert_all()
-
-            _ ->
-              :noop
-          end
-        end)
-        |> Stream.run()
+  defp compile_log_pattern(log_pattern) do
+    case Regex.compile(log_pattern) do
+      {:ok, _pattern} = ok ->
+        ok
 
       {:error, reason} ->
-        error_message = "Log pattern compile error: #{reason}"
+        error_message = "Log pattern compile error: #{inspect(reason)}"
         Logger.error(error_message)
         {:error, error_message}
     end
+  end
 
-    Logger.debug("Finished inserting into DB")
+  defp validate_log_file(log_file) do
+    case File.open(log_file) do
+      {:ok, file} ->
+        File.close(file)
+        :ok
+
+      {:error, reason} ->
+        error_message = "Open log file error: #{inspect(reason)}"
+        Logger.error(error_message)
+        {:error, error_message}
+    end
+  end
+
+  defp insert_report_table(log_file) do
+    case Repo.insert(%Report{file: log_file}) do
+      {:ok, report} ->
+        {:ok, report.id}
+
+      {:error, _} ->
+        error_message = "Insert report table error"
+        Logger.error(error_message)
+        {:error, error_message}
+    end
+  end
+
+  defp create_log_table(log_id) do
+    case Migrator.create_log_table(log_id) do
+      {:ok, _} ->
+        :ok
+
+      {:error, exception} ->
+        error_message = "Create log table error: #{exception.message}"
+        Logger.error(error_message)
+        {:error, error_message}
+    end
+  end
+
+  defp parse_file(log_id, log_file, log_pattern, log_format, time_format) do
+    Logger.info("Starting parsing log file [#{log_file}]")
+    zero = System.monotonic_time()
+
+    File.stream!(log_file)
+    |> Stream.map(&String.trim_trailing/1)
+    |> Stream.with_index()
+    |> Stream.chunk_every(100)
+    |> Stream.each(fn batch ->
+      Repo.insert_all(
+        "log_#{log_id}",
+        batch
+        |> Stream.map(fn {line, index} ->
+          case parse_line(line, log_pattern, log_format, time_format) do
+            {:ok, values} ->
+              values
+
+            {:error, reason} ->
+              Logger.warn(reason <> " at line #{index + 1}")
+              []
+          end
+        end)
+        |> Enum.to_list()
+      )
+    end)
+    |> Stream.run()
 
     diff = System.monotonic_time() - zero
     seconds = System.convert_time_unit(diff, :native, :milli_seconds) / 1000
@@ -54,43 +99,40 @@ defmodule LogAnalyzer.Parser do
     :ok
   end
 
-  def parse_line(line, index, pattern, formats, time_format) do
+  defp parse_line(line, pattern, formats, time_format) do
     case Regex.run(pattern, line) do
       [_ | fields] when length(fields) == length(formats) ->
-        parse_fields(fields, formats, Keyword.new(), index, time_format)
+        parse_fields(fields, formats, Keyword.new(), time_format)
 
       _ ->
-        error_message = "Log format error at line #{index}"
-        Logger.warn(error_message)
-        {:error, error_message}
+        {:error, "Log format error: regex not match"}
     end
   end
 
-  def parse_fields([], [], values, _, _) do
+  defp parse_fields([], [], values, _) do
     {:ok, values}
   end
 
-  def parse_fields([field | fields], [format | formats], values, index, time_format) do
-    case parse_field(field, format, index, time_format) do
+  defp parse_fields([field | fields], [format | formats], values, time_format) do
+    case parse_field(field, format, time_format) do
       {:ok, value} ->
-        parse_fields(fields, formats, Keyword.merge(values, value), index, time_format)
+        parse_fields(fields, formats, Keyword.merge(values, value), time_format)
 
       {:error, _} = error ->
         error
     end
   end
 
-  def parse_field(field, "IP", index, _) do
+  defp parse_field(field, "IP", _) do
     if length = String.length(field) > 46 do
-      error_message = "[IP] exceed max length (46, got #{length}) at line #{index}"
-      Logger.warn(error_message)
-      {:error, error_message}
+      {:error, "[IP] format error: exceed max length (46, got #{length})"}
     else
       {:ok, [ip: field]}
     end
   end
 
-  def parse_field(field, "Time", index, time_format) do
+  # TODO: remove time_format
+  defp parse_field(field, "Time", time_format) do
     case Timex.Parse.DateTime.Parser.parse(field, time_format) do
       {:ok, %DateTime{} = datetime} ->
         # drop timezone
@@ -100,148 +142,119 @@ defmodule LogAnalyzer.Parser do
         {:ok, [time: datetime]}
 
       {:error, reason} ->
-        error_message = "[Time] format error at line #{index}: #{inspect(reason)}"
-        Logger.warn(error_message)
-        {:error, error_message}
+        {:error, "[Time] format error: #{inspect(reason)}"}
     end
   end
 
-  def parse_field(field, "RequestMethod", index, _) do
+  defp parse_field(field, "RequestMethod", _) do
     if length = String.length(field) > 10 do
-      error_message = "[RequestMethod] exceed max length (10, got #{length}) at line #{index}"
-      Logger.warn(error_message)
-      {:error, error_message}
+      {:error, "[RequestMethod] format error: exceed max length (10, got #{length})"}
     else
       {:ok, [request_method: field]}
     end
   end
 
-  def parse_field(field, "RequestURL", index, _) do
+  defp parse_field(field, "RequestURL", _) do
     url = URI.parse(field)
 
     if url.path == nil do
-      error_message = "[RequestURL] format error at line #{index}"
-      Logger.warn(error_message)
-      {:error, error_message}
+      {:error, "[RequestURL] format error: url path not found"}
     else
       {:ok,
        [
          url_path: url.path,
-         url_query: if(url.query == nil, do: "", else: url.query),
-         url_is_static: is_static(url.path)
+         url_query: url.query,
+         url_is_static: url_is_static(url.path)
        ]}
     end
   end
 
-  def parse_field(field, "HTTPVersion", index, _) do
+  defp parse_field(field, "HTTPVersion", _) do
     if length = String.length(field) > 10 do
-      error_message = "[HTTPVersion] exceed max length (10, got #{length}) at line #{index}"
-      Logger.warn(error_message)
-      {:error, error_message}
+      {:error, "[HTTPVersion] format error: exceed max length (10, got #{length})"}
     else
       {:ok, [http_version: field]}
     end
   end
 
-  def parse_field(field, "ResponseCode", index, _) do
+  defp parse_field(field, "ResponseCode", _) do
     case Integer.parse(field) do
       {code, ""} ->
         try do
           Plug.Conn.Status.reason_atom(code)
           {:ok, [response_code: code]}
         rescue
-          e in ArgumentError ->
-            error_message = "[ResponseCode] format error at line #{index}: #{e.message}"
-            Logger.warn(error_message)
-            {:error, error_message}
+          _ -> {:error, "[ResponseCode] format error: unknown status code"}
         end
 
       _ ->
-        error_message = "[ResponseCode] format error at line #{index}: invalid integer"
-        Logger.warn(error_message)
-        {:error, error_message}
+        {:error, "[ResponseCode] format error: invalid integer"}
     end
   end
 
-  def parse_field(field, "ResponseTime", index, _) do
+  defp parse_field(field, "ResponseTime", _) do
     if field == "-" do
-      # TODO: maybe {:ok, []}?
-      {:ok, [response_time: 0]}
+      {:ok, []}
     else
       case Integer.parse(field) do
         {time, _} ->
           {:ok, [response_time: time]}
 
         :error ->
-          error_message = "[ResponseTime] format error at line #{index}: invalid number"
-          Logger.warn(error_message)
-          {:error, error_message}
+          {:error, "[ResponseTime] format error: invalid number"}
       end
     end
   end
 
-  def parse_field(field, "ContentSize", index, _) do
+  defp parse_field(field, "ContentSize", _) do
     if field == "-" do
-      # TODO: maybe {:ok, []}?
-      {:ok, [content_size: 0]}
+      {:ok, []}
     else
       case Integer.parse(field) do
         {size, _} ->
           {:ok, [content_size: size]}
 
         :error ->
-          error_message = "[ContentSize] format error at line #{index}: invalid number"
-          Logger.warn(error_message)
-          {:error, error_message}
+          {:error, "[ContentSize] format error: invalid number"}
       end
     end
   end
 
-  def parse_field(field, "UserAgent", _index, _) do
-    result = UAInspector.parse(field)
+  defp parse_field(field, "UserAgent", __) do
+    {:ok, []}
+    # result = UAInspector.parse(field)
 
-    {:ok,
-     [
-       ua_browser: ua_browser(result),
-       ua_os: ua_os(result),
-       ua_device: ua_device(result)
-     ]}
+    # {:ok,
+    #  [
+    #    ua_browser: ua_browser(result),
+    #    ua_os: ua_os(result),
+    #    ua_device: ua_device(result)
+    #  ]}
   end
 
-  def parse_field(field, "Referrer", _index, _) do
+  defp parse_field(field, "Referrer", _) do
     if field == "-" do
-      # TODO: maybe {:ok, []}?
-      {:ok, [referrer_site: "", referrer_path: "", referrer_query: ""]}
+      {:ok, []}
     else
       referrer = URI.parse(field)
 
-      if referrer.scheme == nil || referrer.path == nil do
-        # TODO: maybe {:ok, []}?
-        {:ok, [referrer_site: "", referrer_path: "", referrer_query: ""]}
-      else
-        {:ok,
-         [
-           referrer_site: referrer.scheme <> referrer.path,
-           referrer_path: referrer.path,
-           referrer_query: if(referrer.query == nil, do: "", else: referrer.query)
-         ]}
-      end
+      {:ok,
+       [
+         referrer_site: referrer_site(referrer.scheme, referrer.host),
+         referrer_path: referrer.path,
+         referrer_query: referrer.query
+       ]}
     end
   end
 
-  defp is_static(url_path) do
+  defp url_is_static(url_path) do
     if String.contains?(url_path, ".") do
-      Enum.any?(
+      not Enum.member?(
         non_static_exts(),
-        fn ext ->
-          url_path
-          |> String.split(".")
-          |> List.last()
-          |> String.split()
-          |> List.first()
-          |> String.downcase()
-          |> String.starts_with?(ext)
-        end
+        url_path
+        |> String.split(".")
+        |> List.last()
+        |> String.downcase()
       )
     else
       false
@@ -300,4 +313,8 @@ defmodule LogAnalyzer.Parser do
         "Unknown"
     end
   end
+
+  defp referrer_site(_, nil), do: nil
+  defp referrer_site(nil, host), do: "http://" <> host
+  defp referrer_site(scheme, host), do: scheme <> "://" <> host
 end

@@ -1,6 +1,8 @@
 defmodule LogAnalyzer.Repo.Migrator do
   alias LogAnalyzer.Repo
 
+  # TODO: support more drivers other than Postgres
+
   def create_report_table() do
     Repo.query("""
     CREATE TABLE report (
@@ -29,7 +31,7 @@ defmodule LogAnalyzer.Repo.Migrator do
       ua_device      text,
       referrer_site  text,
       referrer_path  text,
-      referrer_query text        
+      referrer_query text
     )
     """)
   end
