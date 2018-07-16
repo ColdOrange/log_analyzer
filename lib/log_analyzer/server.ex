@@ -1,19 +1,11 @@
 defmodule LogAnalyzer.Server do
-  alias LogAnalyzer.{DBConfig, LogConfig, Parser}
-  alias LogAnalyzer.Repo.Supervisor, as: RepoSupervisor
+  use GenServer
 
-  def run() do
-    RepoSupervisor.start_repo(
-      %DBConfig{
-        driver: "postgres",
-        database: "log_analyzer",
-        username: "Orange",
-        password: ""
-      },
-      false
-    )
-
-    # Parser.parse(LogConfig.get())
+  def start_link(_opts) do
     Plug.Adapters.Cowboy2.http(LogAnalyzer.Server.Router, [])
+  end
+
+  def init(args) do
+    {:ok, args}
   end
 end

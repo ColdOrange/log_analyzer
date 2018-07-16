@@ -5,6 +5,7 @@ defmodule LogAnalyzer.LogConfig do
   @project_path File.cwd!()
   @log_config_file Path.join(~w(#{@project_path} priv config log_config.json))
 
+  @derive [Poison.Encoder]
   defstruct initialized: false,
             log_file: nil,
             log_pattern: nil,

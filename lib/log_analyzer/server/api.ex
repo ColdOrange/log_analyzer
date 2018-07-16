@@ -1,21 +1,15 @@
 defmodule LogAnalyzer.Server.API do
   use Plug.Router
 
-  alias LogAnalyzer.Server.API.{
-    Reports,
-    Summary
-  }
-
+  # :put_resp_content_type should be plugged before :dispatch
+  plug :put_resp_content_type, "application/json"
   plug :match
   plug :dispatch
 
-  plug :put_resp_content_type, "application/json"
+  forward "/config", to: LogAnalyzer.Server.API.Config
+  forward "/reports", to: LogAnalyzer.Server.API.Reports
 
-  forward "/reports", to: Reports
-
-  plug :not_found
-
-  def not_found(conn, _opts) do
+  match _ do
     send_resp(conn, 404, ~s/{"error": "not found"}/)
   end
 end

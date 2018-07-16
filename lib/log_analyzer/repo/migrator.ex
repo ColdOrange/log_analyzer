@@ -4,16 +4,21 @@ defmodule LogAnalyzer.Repo.Migrator do
   # TODO: support more drivers other than Postgres
 
   def create_report_table() do
-    Repo.query("""
+    query = """
     CREATE TABLE report (
       id   serial PRIMARY KEY,
       file text NOT NULL
     )
-    """)
+    """
+
+    case Repo.query(query) do
+      {:ok, _} -> :ok
+      {:error, exception} -> {:error, "Create report table error: #{exception.message}"}
+    end
   end
 
   def create_log_table(id) do
-    Repo.query("""
+    query = """
     CREATE TABLE log_#{id} (
       id             serial PRIMARY KEY,
       ip             varchar(46),
@@ -33,10 +38,20 @@ defmodule LogAnalyzer.Repo.Migrator do
       referrer_path  text,
       referrer_query text
     )
-    """)
+    """
+
+    case Repo.query(query) do
+      {:ok, _} -> :ok
+      {:error, exception} -> {:error, "Create log_#{id} table error: #{exception.message}"}
+    end
   end
 
   def drop_log_table(id) do
-    Repo.query("DROP TABLE IF EXISTS log_#{id}")
+    query = "DROP TABLE IF EXISTS log_#{id}"
+
+    case Repo.query(query) do
+      {:ok, _} -> :ok
+      {:error, exception} -> {:error, "Drop log_#{id} table error: #{exception.message}"}
+    end
   end
 end

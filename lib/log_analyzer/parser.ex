@@ -12,20 +12,19 @@ defmodule LogAnalyzer.Parser do
     with {:ok, pattern} <- compile_log_pattern(log_pattern),
          :ok <- validate_log_file(log_file),
          {:ok, id} <- insert_report_table(log_file),
-         :ok <- create_log_table(id) do
+         :ok <- Migrator.create_log_table(id) do
       parse_file(id, log_file, pattern, log_format, time_format)
+    else
+      {:error, message} ->
+        Logger.error(message)
+        {:error, message}
     end
   end
 
   defp compile_log_pattern(log_pattern) do
     case Regex.compile(log_pattern) do
-      {:ok, _pattern} = ok ->
-        ok
-
-      {:error, reason} ->
-        error_message = "Log pattern compile error: #{inspect(reason)}"
-        Logger.error(error_message)
-        {:error, error_message}
+      {:ok, pattern} -> {:ok, pattern}
+      {:error, reason} -> {:error, "Log pattern compile error: #{reason}"}
     end
   end
 
@@ -36,33 +35,14 @@ defmodule LogAnalyzer.Parser do
         :ok
 
       {:error, reason} ->
-        error_message = "Open log file error: #{inspect(reason)}"
-        Logger.error(error_message)
-        {:error, error_message}
+        {:error, "Open log file error: #{reason}"}
     end
   end
 
   defp insert_report_table(log_file) do
     case Repo.insert(%Report{file: log_file}) do
-      {:ok, report} ->
-        {:ok, report.id}
-
-      {:error, _} ->
-        error_message = "Insert report table error"
-        Logger.error(error_message)
-        {:error, error_message}
-    end
-  end
-
-  defp create_log_table(log_id) do
-    case Migrator.create_log_table(log_id) do
-      {:ok, _} ->
-        :ok
-
-      {:error, exception} ->
-        error_message = "Create log table error: #{exception.message}"
-        Logger.error(error_message)
-        {:error, error_message}
+      {:ok, report} -> {:ok, report.id}
+      {:error, _} -> {:error, "Insert report table error"}
     end
   end
 
@@ -142,7 +122,7 @@ defmodule LogAnalyzer.Parser do
         {:ok, [time: datetime]}
 
       {:error, reason} ->
-        {:error, "[Time] format error: #{inspect(reason)}"}
+        {:error, "[Time] format error: #{reason}"}
     end
   end
 

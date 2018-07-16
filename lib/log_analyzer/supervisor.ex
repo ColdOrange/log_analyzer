@@ -7,9 +7,10 @@ defmodule LogAnalyzer.Supervisor do
 
   def init(:ok) do
     children = [
+      {LogAnalyzer.Repo.Supervisor, []},
       {LogAnalyzer.DBConfig, []},
       {LogAnalyzer.LogConfig, []},
-      {LogAnalyzer.Repo.Supervisor, []}
+      {LogAnalyzer.Server, []}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

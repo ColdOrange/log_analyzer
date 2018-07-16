@@ -20,7 +20,7 @@ type State = {
 
 class Database extends React.Component<Props, State> {
   state = {
-    driver: 'mysql',
+    driver: 'postgres',
     username: '',
     password: '',
     database: 'log_analyzer',
@@ -135,7 +135,7 @@ class Database extends React.Component<Props, State> {
           <Form.Item
             {...formItemLayout}
             label="Driver"
-            extra="Database driver, only support MySQL for now."
+            extra="Database driver, only support PostgreSQL for now."
           >
             {
               getFieldDecorator('driver', {
@@ -143,7 +143,7 @@ class Database extends React.Component<Props, State> {
                 rules: [{ required: true, message: 'Please select the database driver!' }],
               })(
                 <Select>
-                  <Select.Option value="mysql">MySQL</Select.Option>
+                  <Select.Option value="postgres">PostgreSQL</Select.Option>
                 </Select>
               )
             }

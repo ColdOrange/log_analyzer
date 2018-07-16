@@ -11,48 +11,51 @@ defmodule LogAnalyzer.Repo.Supervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def start_repo(config, create_database?) do
-    case repo_opts(config) do
-      {:ok, opts} ->
-        :ets.insert(__MODULE__, {:config, Keyword.merge(LogAnalyzer.Repo.config(), opts)})
+  def start_repo(config, create_database? \\ false)
 
-        if create_database? do
-          create_database()
-        end
-
-        case DynamicSupervisor.start_child(__MODULE__, {LogAnalyzer.Repo, opts}) do
-          ok when elem(ok, 0) == :ok ->
-            Logger.debug("LogAnalyzer.Repo started successfully")
-            :ets.insert(__MODULE__, {:pid, elem(ok, 1)})
-            {:ok, elem(ok, 1)}
-
-          {:error, reason} = error ->
-            Logger.error("Dynamic supervisor start child error: #{inspect(reason)}")
-            error
-        end
-
-      {:error, reason} = error ->
-        Logger.error("Database config error: #{inspect(reason)}")
-        error
+  def start_repo(config, true) do
+    with {:ok, opts} <- get_repo_opts(config),
+         :ok <- create_database(),
+         :ok <- start_child(opts) do
+      :ok
     end
   end
 
-  def stop_repo(drop_database?) do
-    [{_, pid}] = :ets.lookup(__MODULE__, :pid)
-
-    case DynamicSupervisor.terminate_child(__MODULE__, pid) do
-      :ok ->
-        Logger.debug("LogAnalyzer.Repo stoped successfully")
-        :ok
-
-      {:error, reason} = error ->
-        Logger.error("Dynamic supervisor terminate_child child error: #{inspect(reason)}")
-        error
+  def start_repo(config, false) do
+    with {:ok, opts} <- get_repo_opts(config),
+         :ok <- start_child(opts) do
+      :ok
     end
+  end
 
-    if drop_database? do
-      drop_database()
+  def stop_repo(drop_database? \\ true)
+
+  def stop_repo(true) do
+    with :ok <- terminate_child(),
+         :ok <- drop_database() do
+      :ok
     end
+  end
+
+  def stop_repo(false) do
+    terminate_child()
+  end
+
+  defp get_repo_opts(%LogAnalyzer.DBConfig{driver: "postgres"} = config) do
+    opts = [
+      adapter: Ecto.Adapters.Postgres,
+      database: config.database,
+      username: config.username,
+      password: config.password,
+      hostname: "localhost"
+    ]
+
+    :ets.insert(__MODULE__, {:config, Keyword.merge(LogAnalyzer.Repo.config(), opts)})
+    {:ok, opts}
+  end
+
+  defp get_repo_opts(_config) do
+    {:error, "Database config error: unsupported driver"}
   end
 
   defp create_database() do
@@ -60,15 +63,44 @@ defmodule LogAnalyzer.Repo.Supervisor do
 
     case repo.__adapter__.storage_up(repo.config) do
       :ok ->
-        Logger.debug("Database #{Keyword.get(repo.config, :database)} created successfully")
+        Logger.info("Database #{Keyword.get(repo.config, :database)} created successfully")
+        :ok
 
       {:error, :already_up} ->
-        Logger.error("Database #{Keyword.get(repo.config, :database)} has already been created")
+        {:error, "Database #{Keyword.get(repo.config, :database)} has already been created"}
 
       {:error, reason} ->
-        Logger.error(
-          "Database #{Keyword.get(repo.config, :database)} create error: #{inspect(reason)}"
-        )
+        {:error, "Database #{Keyword.get(repo.config, :database)} create error: #{reason}"}
+    end
+  end
+
+  defp start_child(opts) do
+    case DynamicSupervisor.start_child(__MODULE__, {LogAnalyzer.Repo, opts}) do
+      ok when elem(ok, 0) == :ok ->
+        Logger.info("LogAnalyzer.Repo started successfully")
+        :ets.insert(__MODULE__, {:pid, elem(ok, 1)})
+        :ok
+
+      {:error, reason} ->
+        {:error, "Dynamic supervisor start child error: #{reason}"}
+    end
+  end
+
+  defp terminate_child() do
+    case :ets.lookup(__MODULE__, :pid) do
+      [{_, pid}] ->
+        case DynamicSupervisor.terminate_child(__MODULE__, pid) do
+          :ok ->
+            Logger.info("LogAnalyzer.Repo stoped successfully")
+            :ok
+
+          {:error, reason} ->
+            {:error, "Dynamic supervisor terminate_child child error: #{reason}"}
+        end
+
+      [] ->
+        # TODO: error?
+        :ok
     end
   end
 
@@ -77,30 +109,14 @@ defmodule LogAnalyzer.Repo.Supervisor do
 
     case repo.__adapter__.storage_down(repo.config) do
       :ok ->
-        Logger.debug("Database #{Keyword.get(repo.config, :database)} dropped successfully")
+        Logger.info("Database #{Keyword.get(repo.config, :database)} dropped successfully")
+        :ok
 
       {:error, :already_down} ->
-        Logger.error("Database #{Keyword.get(repo.config, :database)} has already been dropped")
+        {:error, "Database #{Keyword.get(repo.config, :database)} has already been dropped"}
 
       {:error, reason} ->
-        Logger.error(
-          "Database #{Keyword.get(repo.config, :database)} drop error: #{inspect(reason)}"
-        )
+        {:error, "Database #{Keyword.get(repo.config, :database)} drop error: #{reason}"}
     end
-  end
-
-  defp repo_opts(%LogAnalyzer.DBConfig{driver: "postgres"} = config) do
-    {:ok,
-     [
-       adapter: Ecto.Adapters.Postgres,
-       database: config.database,
-       username: config.username,
-       password: config.password,
-       hostname: "localhost"
-     ]}
-  end
-
-  defp repo_opts(_config) do
-    {:error, :unsupported_driver}
   end
 end
