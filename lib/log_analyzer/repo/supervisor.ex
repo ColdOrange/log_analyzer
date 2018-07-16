@@ -89,6 +89,7 @@ defmodule LogAnalyzer.Repo.Supervisor do
   defp terminate_child() do
     case :ets.lookup(__MODULE__, :pid) do
       [{_, pid}] ->
+        :ets.delete(__MODULE__, :pid)
         case DynamicSupervisor.terminate_child(__MODULE__, pid) do
           :ok ->
             Logger.info("LogAnalyzer.Repo stoped successfully")
