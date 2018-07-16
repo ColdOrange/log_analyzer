@@ -1,0 +1,31 @@
+.page {
+  /*height: 100vh; !* TODO: smooth scroll *!*/
+  min-height: 820px;
+}
+
+.header {
+  background: #fff;
+  padding: 0;
+}
+
+.trigger {
+  font-size: 18px;
+  line-height: 64px;
+  padding: 0 24px;
+  cursor: pointer;
+  transition: all .3s;
+}
+
+.trigger:hover {
+  color: #1890ff;
+  background-color: rgba(24, 144, 255, .15);
+}
+
+.content {
+  margin: 24px 24px 0;
+  overflow: initial;
+}
+
+.footer {
+  text-align: center;
+}

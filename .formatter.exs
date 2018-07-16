@@ -4,7 +4,7 @@
     ".formatter.exs",
     "{config,lib,test}/**/*.{ex,exs}"
   ],
-  import: [
+  import_deps: [
     :plug,
     :ecto
   ]

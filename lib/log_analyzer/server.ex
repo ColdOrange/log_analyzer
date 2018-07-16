@@ -13,6 +13,7 @@ defmodule LogAnalyzer.Server do
       false
     )
 
-    Parser.parse(LogConfig.get())
+    # Parser.parse(LogConfig.get())
+    Plug.Adapters.Cowboy2.http(LogAnalyzer.Server.Router, [])
   end
 end

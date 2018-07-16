@@ -221,15 +221,14 @@ defmodule LogAnalyzer.Parser do
   end
 
   defp parse_field(field, "UserAgent", __) do
-    {:ok, []}
-    # result = UAInspector.parse(field)
+    result = UAInspector.parse(field)
 
-    # {:ok,
-    #  [
-    #    ua_browser: ua_browser(result),
-    #    ua_os: ua_os(result),
-    #    ua_device: ua_device(result)
-    #  ]}
+    {:ok,
+     [
+       ua_browser: ua_browser(result),
+       ua_os: ua_os(result),
+       ua_device: ua_device(result)
+     ]}
   end
 
   defp parse_field(field, "Referrer", _) do
@@ -283,7 +282,7 @@ defmodule LogAnalyzer.Parser do
       %UAInspector.Result{} ->
         if result.client != :unknown && result.client.name != :unknown,
           do: result.client.name,
-          else: "Unkonwn"
+          else: "Unknown"
 
       %UAInspector.Result.Bot{} ->
         if result.name != :unknown, do: result.name, else: "Unknown"
@@ -295,10 +294,10 @@ defmodule LogAnalyzer.Parser do
       %UAInspector.Result{} ->
         if result.os != :unknown && result.os.name != :unknown,
           do: result.os.name,
-          else: "Unkonwn"
+          else: "Unknown"
 
       %UAInspector.Result.Bot{} ->
-        "Unknown"
+        nil
     end
   end
 
@@ -307,10 +306,10 @@ defmodule LogAnalyzer.Parser do
       %UAInspector.Result{} ->
         if result.device != :unknown && result.device.type != :unknown,
           do: result.device.type,
-          else: "Unkonwn"
+          else: "Unknown"
 
       %UAInspector.Result.Bot{} ->
-        "Unknown"
+        nil
     end
   end
 

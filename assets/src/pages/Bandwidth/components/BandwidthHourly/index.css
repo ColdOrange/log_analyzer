@@ -1,0 +1,9 @@
+.select {
+  width: 120px;
+  position: absolute;
+  right: 64px;
+}
+
+.container {
+  padding: 64px 24px 0 0;
+}
