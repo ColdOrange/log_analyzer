@@ -7,7 +7,7 @@ defmodule LogAnalyzer.Server.API.Util do
       200,
       Poison.encode!(%{
         status: "failed",
-        error: error
+        errors: [error]
       })
     )
   end

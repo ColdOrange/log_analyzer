@@ -41,6 +41,13 @@ defmodule LogAnalyzer.Repo.Supervisor do
     terminate_child()
   end
 
+  def repo_started?() do
+    case :ets.lookup(__MODULE__, :pid) do
+      [{_, _pid}] -> true
+      _ -> false
+    end
+  end
+
   defp get_repo_opts(%LogAnalyzer.DBConfig{driver: "postgres"} = config) do
     opts = [
       adapter: Ecto.Adapters.Postgres,
@@ -90,6 +97,7 @@ defmodule LogAnalyzer.Repo.Supervisor do
     case :ets.lookup(__MODULE__, :pid) do
       [{_, pid}] ->
         :ets.delete(__MODULE__, :pid)
+
         case DynamicSupervisor.terminate_child(__MODULE__, pid) do
           :ok ->
             Logger.info("LogAnalyzer.Repo stoped successfully")

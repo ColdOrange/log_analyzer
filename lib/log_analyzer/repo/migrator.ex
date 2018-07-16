@@ -54,4 +54,16 @@ defmodule LogAnalyzer.Repo.Migrator do
       {:error, exception} -> {:error, "Drop log_#{id} table error: #{exception.message}"}
     end
   end
+
+  def delete_from_report_table(id) do
+    query = "DELETE FROM report WHERE id=#{id}"
+
+    case Repo.query(query) do
+      {:ok, _} ->
+        :ok
+
+      {:error, exception} ->
+        {:error, "Delete from report table error (id:#{id}): #{exception.message}"}
+    end
+  end
 end
