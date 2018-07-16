@@ -6,11 +6,11 @@ defmodule LogAnalyzer.LogConfig do
   @log_config_file Path.join(~w(#{@project_path} priv config log_config.json))
 
   @derive [Poison.Encoder]
-  defstruct initialized: false,
-            log_file: nil,
-            log_pattern: nil,
-            log_format: nil,
-            time_format: nil
+  # TODO: use snake_case and convert to camelCase when encoding JSON
+  defstruct logFile: nil,
+            logPattern: nil,
+            logFormat: nil,
+            timeFormat: nil
 
   def start_link(_opts) do
     Agent.start_link(fn -> load() end, name: __MODULE__)
@@ -20,42 +20,71 @@ defmodule LogAnalyzer.LogConfig do
     Agent.get(__MODULE__, fn config -> config end)
   end
 
-  def set(config) do
+  def set(json_config) do
     # TODO: validate time_format
-    Agent.update(__MODULE__, fn _config -> config end)
+    with {:ok, config} = decode_json(json_config),
+         :ok <- LogAnalyzer.Parser.parse(config),
+         :ok <- write_file(json_config) do
+      Agent.update(__MODULE__, fn _ -> config end)
+    else
+      {:error, message} ->
+        Logger.error(message)
+        {:error, message}
+    end
   end
 
   defp load() do
+    with {:ok, data} <- read_file(),
+         {:ok, config} <- decode_json(data) do
+      config
+    else
+      {level, message} ->
+        Logger.log(level, message <> ", use default config")
+        defaultLogConfig()
+    end
+  end
+
+  defp read_file() do
     case File.read(@log_config_file) do
       {:ok, data} ->
-        case Poison.decode(data, %__MODULE__{}) do
-          {:ok, config} ->
-            config
-
-          {:error, reason} ->
-            Logger.error("Decode LogConfig file error: #{inspect(reason)}, uninitialized")
-            defaultLogConfig()
-        end
+        {:ok, data}
 
       {:error, reason} ->
         if reason == :enoent do
-          Logger.debug("LogConfig file not found, uninitialized")
+          {:info, "LogConfig file not found"}
         else
-          Logger.error("Read LogConfig file error: #{inspect(reason)}, uninitialized")
+          {:error, "Read LogConfig file error: #{reason}"}
         end
+    end
+  end
 
-        defaultLogConfig()
+  defp decode_json(data) do
+    case Poison.decode(data, as: %__MODULE__{}) do
+      {:ok, config} ->
+        {:ok, config}
+
+      {:error, reason} ->
+        {:error, "Decode LogConfig json error: #{reason}"}
     end
   end
 
   defp defaultLogConfig() do
     %__MODULE__{
-      initialized: true,
-      log_file: Path.join(~w(#{@project_path} priv sample sample.log)),
-      log_pattern: ~s/(.*) - - \\[(.*)\\] "(.*) (.*) (.*)" (.*) (.*) "(.*)" "(.*)" (.*)/,
-      log_format:
+      logFile: Path.join(~w(#{@project_path} priv sample sample.log)),
+      logPattern: ~s/(.*) - - \\[(.*)\\] "(.*) (.*) (.*)" (.*) (.*) "(.*)" "(.*)" (.*)/,
+      logFormat:
         ~w(IP Time RequestMethod RequestURL HTTPVersion ResponseCode ContentSize Referrer UserAgent ResponseTime),
-      time_format: "{0D}/{Mshort}/{YYYY}:{h24}:{m}:{s} {Z}"
+      timeFormat: "{0D}/{Mshort}/{YYYY}:{h24}:{m}:{s} {Z}"
     }
+  end
+
+  defp write_file(data) do
+    case File.write(@log_config_file, data) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        {:error, "Write LogConfig file error: #{reason}"}
+    end
   end
 end

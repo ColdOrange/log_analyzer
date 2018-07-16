@@ -24,7 +24,12 @@ defmodule LogAnalyzer.Server.API.Config do
   end
 
   post "/log-format" do
-    send_resp(conn, 200, "hello\n")
+    {:ok, body, conn} = read_body(conn)
+
+    case LogConfig.set(body) do
+      :ok -> send_success(conn)
+      {:error, message} -> send_error(conn, message)
+    end
   end
 
   match _ do

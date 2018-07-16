@@ -4,20 +4,16 @@ defmodule LogAnalyzer.Parser do
   alias LogAnalyzer.Repo.{Migrator, Report}
 
   def parse(%LogConfig{
-        log_file: log_file,
-        log_pattern: log_pattern,
-        log_format: log_format,
-        time_format: time_format
+        logFile: log_file,
+        logPattern: log_pattern,
+        logFormat: log_format,
+        timeFormat: time_format
       }) do
     with {:ok, pattern} <- compile_log_pattern(log_pattern),
          :ok <- validate_log_file(log_file),
          {:ok, id} <- insert_report_table(log_file),
          :ok <- Migrator.create_log_table(id) do
       parse_file(id, log_file, pattern, log_format, time_format)
-    else
-      {:error, message} ->
-        Logger.error(message)
-        {:error, message}
     end
   end
 
