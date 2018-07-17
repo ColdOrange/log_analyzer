@@ -1,0 +1,4 @@
+1. find a best way to start server under supervision
+2. add cache for report api
+3. improve performance of ua_inspector
+4. add webpack watcher
