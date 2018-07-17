@@ -98,6 +98,20 @@ defmodule LogAnalyzer.Server.API.Reports do
     Request.get_static_file(conn, id)
   end
 
+  alias LogAnalyzer.Server.API.Reports.Response
+
+  get "/:id/status-code" do
+    Response.get_status_code(conn, id)
+  end
+
+  get "/:id/response-time" do
+    Response.get_response_time(conn, id)
+  end
+
+  get "/:id/response-url" do
+    Response.get_response_url(conn, id)
+  end
+
   match _ do
     send_resp(conn, 404, ~s/{"error": "not found"}/)
   end
