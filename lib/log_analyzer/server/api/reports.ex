@@ -66,6 +66,20 @@ defmodule LogAnalyzer.Server.API.Reports do
     UserViews.get_user_views_monthly(conn, id)
   end
 
+  alias LogAnalyzer.Server.API.Reports.Bandwidth
+
+  get "/:id/bandwidth/daily" do
+    Bandwidth.get_bandwidth_daily(conn, id)
+  end
+
+  get "/:id/bandwidth/hourly" do
+    Bandwidth.get_bandwidth_hourly(conn, id)
+  end
+
+  get "/:id/bandwidth/monthly" do
+    Bandwidth.get_bandwidth_monthly(conn, id)
+  end
+
   match _ do
     send_resp(conn, 404, ~s/{"error": "not found"}/)
   end
