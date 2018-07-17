@@ -52,6 +52,20 @@ defmodule LogAnalyzer.Server.API.Reports do
     PageViews.get_page_views_monthly(conn, id)
   end
 
+  alias LogAnalyzer.Server.API.Reports.UserViews
+
+  get "/:id/user-views/daily" do
+    UserViews.get_user_views_daily(conn, id)
+  end
+
+  get "/:id/user-views/hourly" do
+    UserViews.get_user_views_hourly(conn, id)
+  end
+
+  get "/:id/user-views/monthly" do
+    UserViews.get_user_views_monthly(conn, id)
+  end
+
   match _ do
     send_resp(conn, 404, ~s/{"error": "not found"}/)
   end
