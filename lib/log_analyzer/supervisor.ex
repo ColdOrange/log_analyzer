@@ -10,7 +10,7 @@ defmodule LogAnalyzer.Supervisor do
       {LogAnalyzer.Repo.Supervisor, []},
       {LogAnalyzer.DBConfig, []},
       {LogAnalyzer.LogConfig, []},
-      {LogAnalyzer.Server, []}
+      {LogAnalyzer.Server, port: 4000}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

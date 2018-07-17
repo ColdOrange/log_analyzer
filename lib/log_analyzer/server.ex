@@ -1,11 +1,9 @@
 defmodule LogAnalyzer.Server do
-  use GenServer
-
-  def start_link(_opts) do
-    Plug.Adapters.Cowboy2.http(LogAnalyzer.Server.Router, [])
-  end
-
-  def init(args) do
-    {:ok, args}
+  def child_spec(opts) do
+    Plug.Adapters.Cowboy2.child_spec(
+      scheme: :http,
+      plug: LogAnalyzer.Server.Router,
+      options: opts
+    )
   end
 end
