@@ -212,11 +212,13 @@ defmodule LogAnalyzer.Parser do
       {:ok, []}
     else
       referrer = URI.parse(field)
+      referrer_site = referrer_site(referrer.scheme, referrer.host)
+      referrer_path = referrer_path(referrer_site, referrer.path)
 
       {:ok,
        [
-         referrer_site: referrer_site(referrer.scheme, referrer.host),
-         referrer_path: referrer.path,
+         referrer_site: referrer_site,
+         referrer_path: referrer_path,
          referrer_query: referrer.query
        ]}
     end
@@ -292,4 +294,8 @@ defmodule LogAnalyzer.Parser do
   defp referrer_site(_, nil), do: nil
   defp referrer_site(nil, host), do: "http://" <> host
   defp referrer_site(scheme, host), do: scheme <> "://" <> host
+
+  defp referrer_path(_, nil), do: nil
+  defp referrer_path(nil, _), do: nil
+  defp referrer_path(site, path), do: site <> path
 end

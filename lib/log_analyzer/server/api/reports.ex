@@ -126,6 +126,16 @@ defmodule LogAnalyzer.Server.API.Reports do
     UserAgent.get_browser(conn, id)
   end
 
+  alias LogAnalyzer.Server.API.Reports.Referrer
+
+  get "/:id/referrer/site" do
+    Referrer.get_referring_site(conn, id)
+  end
+
+  get "/:id/referrer/url" do
+    Referrer.get_referring_url(conn, id)
+  end
+
   match _ do
     send_resp(conn, 404, ~s/{"error": "not found"}/)
   end
