@@ -258,10 +258,10 @@ defmodule LogAnalyzer.Parser do
       %UAInspector.Result{} ->
         if result.client != :unknown && result.client.name != :unknown,
           do: result.client.name,
-          else: "Unknown"
+          else: nil
 
       %UAInspector.Result.Bot{} ->
-        if result.name != :unknown, do: result.name, else: "Unknown"
+        if result.name != :unknown, do: result.name, else: nil
     end
   end
 
@@ -270,7 +270,7 @@ defmodule LogAnalyzer.Parser do
       %UAInspector.Result{} ->
         if result.os != :unknown && result.os.name != :unknown,
           do: result.os.name,
-          else: "Unknown"
+          else: nil
 
       %UAInspector.Result.Bot{} ->
         nil
@@ -282,7 +282,7 @@ defmodule LogAnalyzer.Parser do
       %UAInspector.Result{} ->
         if result.device != :unknown && result.device.type != :unknown,
           do: result.device.type,
-          else: "Unknown"
+          else: nil
 
       %UAInspector.Result.Bot{} ->
         nil

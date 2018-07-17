@@ -23,9 +23,9 @@ const columns = [
     onFilter: (value, record) => {
       switch (value) {
       case 'Human':
-        return !record.browser.endsWith('Bot');
+        return !record.browser.match(/bot/i) && !record.browser.match(/spider/i);
       case 'Bot':
-        return record.browser.endsWith('Bot');
+        return record.browser.match(/bot/i) || record.browser.match(/spider/i);
       }
     },
   },
