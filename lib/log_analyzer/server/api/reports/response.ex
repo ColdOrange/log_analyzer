@@ -29,31 +29,6 @@ defmodule LogAnalyzer.Server.API.Reports.Response do
     )
   end
 
-  # def get_response_time(conn, id) do
-  #   case_when_fragment = """
-  #   CASE
-  #   WHEN ? < 50               THEN '<50ms'
-  #   WHEN ? >= 50  AND ? < 100 THEN '50~100ms'
-  #   WHEN ? >= 100 AND ? < 200 THEN '100~200ms'
-  #   WHEN ? >= 200 AND ? < 300 THEN '200~300ms'
-  #   WHEN ? >= 300 AND ? < 400 THEN '300~400ms'
-  #   WHEN ? >= 400 AND ? < 500 THEN '400~500ms'
-  #   ELSE                           '>500ms'
-  #   END
-  #   """
-
-  #   query =
-  #     from log in "log_#{id}",
-  #       select: %{
-  #         timeRange: fragment(case_when_fragment, log.response_time),
-  #         count: count(log.id)
-  #       },
-  #       group_by: fragment(case_when_fragment, log.response_time),
-  #       order_by: [desc: count(log.id)]
-
-  #   send_resp(conn, 200, Poison.encode!(Repo.all(query)))
-  # end
-
   def get_response_time(conn, id) do
     result = [
       %{timeRange: "<50ms", count: count_response_time_range(id, 0, 50)},
