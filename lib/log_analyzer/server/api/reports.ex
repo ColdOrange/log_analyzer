@@ -31,4 +31,14 @@ defmodule LogAnalyzer.Server.API.Reports do
         send_error(conn, message)
     end
   end
+
+  alias LogAnalyzer.Server.API.Reports.Summary
+
+  get "/:id/summary" do
+    Summary.get_summary(conn, id)
+  end
+
+  match _ do
+    send_resp(conn, 404, ~s/{"error": "not found"}/)
+  end
 end
