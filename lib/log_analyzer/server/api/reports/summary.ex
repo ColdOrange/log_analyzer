@@ -92,7 +92,7 @@ defmodule LogAnalyzer.Server.API.Reports.Summary do
   defp user_views(id) do
     query =
       from log in "log_#{id}",
-        select: count(log.id, :distinct)
+        select: count(log.ip, :distinct)
 
     case Repo.one(query) do
       nil -> {:error, "Query user_views error"}
