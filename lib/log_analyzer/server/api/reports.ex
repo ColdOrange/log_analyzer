@@ -80,6 +80,24 @@ defmodule LogAnalyzer.Server.API.Reports do
     Bandwidth.get_bandwidth_monthly(conn, id)
   end
 
+  alias LogAnalyzer.Server.API.Reports.Request
+
+  get "/:id/request-method" do
+    Request.get_request_method(conn, id)
+  end
+
+  get "/:id/http-version" do
+    Request.get_http_version(conn, id)
+  end
+
+  get "/:id/request-url" do
+    Request.get_request_url(conn, id)
+  end
+
+  get "/:id/static-file" do
+    Request.get_static_file(conn, id)
+  end
+
   match _ do
     send_resp(conn, 404, ~s/{"error": "not found"}/)
   end
